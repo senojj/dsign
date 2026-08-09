@@ -1,19 +1,11 @@
 package percent
 
 import (
+	"dsign/internal/encoding/hex"
 	"encoding/binary"
 	"strings"
 	"unsafe"
 )
-
-var hexTable [256]uint16
-
-func init() {
-	const alphabet = "0123456789ABCDEF"
-	for i := range 256 {
-		hexTable[i] = uint16(alphabet[i&0x0F])<<8 | uint16(alphabet[i>>4])
-	}
-}
 
 var decimalTable = [256]byte{
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -87,7 +79,7 @@ func Encode(value string) string {
 		if unreservedTable[src[i]] == 0x0 {
 			p := (*[3]byte)(dst)
 			p[0] = '%'
-			binary.LittleEndian.PutUint16(p[1:3], hexTable[src[i]])
+			binary.LittleEndian.PutUint16(p[1:3], hex.UpperTable[src[i]])
 			dst = dst[3:]
 			length += 3
 			continue
