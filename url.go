@@ -1,6 +1,7 @@
 package dsign
 
 import (
+	"bytes"
 	"dsign/internal/encoding/percent"
 	"net/url"
 	"slices"
@@ -14,7 +15,7 @@ func normalizePath(value string) string {
 	return value
 }
 
-func normalizeQuery(query string) string {
+func EncodeQuery(query string) []byte {
 	size := strings.Count(query, "&") + 1
 	names := make([]string, 0, size)
 	sequences := make(map[string]string, size)
@@ -36,39 +37,31 @@ func normalizeQuery(query string) string {
 	}
 	slices.Sort(names)
 
-	var builder strings.Builder
-	builder.Grow(size)
+	var buffer bytes.Buffer
+	buffer.Grow(size)
 
 	for i, k := range names {
 		if i > 0 {
-			builder.WriteByte('&')
+			buffer.WriteByte('&')
 		}
-		builder.WriteString(percent.Encode(k))
-		builder.WriteByte('=')
-		builder.WriteString(percent.Encode(sequences[k]))
+		buffer.WriteString(percent.Encode(k))
+		buffer.WriteByte('=')
+		buffer.WriteString(percent.Encode(sequences[k]))
 	}
-	return builder.String()
+	return buffer.Bytes()
 }
 
-type CanonicalURL struct {
-	value string
-}
-
-func (c *CanonicalURL) String() string {
-	return c.value
-}
-
-func NormalizeURL(u *url.URL) CanonicalURL {
+func EncodeURL(u *url.URL) []byte {
 	scheme := u.Scheme
 	if scheme == "" {
 		scheme = "https"
 	}
 	host := u.Hostname()
 	path := normalizePath(u.EscapedPath())
-	query := normalizeQuery(u.RawQuery)
+	query := EncodeQuery(u.RawQuery)
 
-	var builder strings.Builder
-	builder.Grow(
+	var buffer bytes.Buffer
+	buffer.Grow(
 		len(scheme) +
 			3 +
 			len(host) +
@@ -77,14 +70,25 @@ func NormalizeURL(u *url.URL) CanonicalURL {
 			len(query),
 	)
 
-	builder.WriteString(scheme)
-	builder.WriteString("://")
-	builder.WriteString(host)
-	builder.WriteString(path)
-	builder.WriteByte('?')
-	builder.WriteString(query)
+	buffer.WriteString(scheme)
+	buffer.WriteString("://")
+	buffer.WriteString(host)
+	buffer.WriteString(path)
+	buffer.WriteByte('?')
+	buffer.Write(query)
 
-	var c CanonicalURL
-	c.value = builder.String()
-	return c
+	return buffer.Bytes()
+}
+
+func SignURL(signer Signer, u *url.URL) {
+	signingString := EncodeURL(u)
+	signature := signer.Sign(signingString)
+	expiration := signature.Timestamp().String()
+	accessKey := signature.AccessKey()
+
+	query := u.Query()
+	query.Set("dynata-expiration", expiration)
+	query.Set("dynata-access-key", accessKey)
+	query.Set("dynata-signature", signature.String())
+	u.RawQuery = query.Encode()
 }

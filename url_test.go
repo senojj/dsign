@@ -50,8 +50,8 @@ func TestNormalizeURL(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			u, err := url.Parse(test.input)
 			require.NoError(t, err)
-			output := dsign.NormalizeURL(u)
-			require.Equal(t, test.output, output.String())
+			output := dsign.EncodeURL(u)
+			require.Equal(t, test.output, string(output))
 		})
 	}
 }

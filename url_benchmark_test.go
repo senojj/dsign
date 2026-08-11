@@ -28,8 +28,7 @@ func BenchmarkMyCanonicalURL(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-				c := dsign.NormalizeURL(u)
-				_ = c.String()
+				_ = dsign.EncodeURL(u)
 			}
 		})
 	}

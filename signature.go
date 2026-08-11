@@ -14,13 +14,18 @@ type Timestamp struct {
 	time.Time
 }
 
-func (e *Timestamp) String() string {
+func (e Timestamp) String() string {
 	return e.Format(timestampFormat)
 }
 
 type Signature struct {
 	data []byte
+	key  string
 	ts   Timestamp
+}
+
+func (s *Signature) AccessKey() string {
+	return s.key
 }
 
 func (s *Signature) Timestamp() Timestamp {
@@ -59,7 +64,7 @@ func (s *Signer) Sign(payload []byte) Signature {
 	second := digest(unsafe.Slice(unsafe.StringData(s.AccessKey), len(s.AccessKey)), first)
 	third := digest(s.SecretKey.Expose(), second)
 
-	signature := Signature{data: third, ts: ts}
+	signature := Signature{data: third, key: s.AccessKey, ts: ts}
 
 	return signature
 }
