@@ -36,10 +36,6 @@ func (s *Signature) String() string {
 	return unsafe.String(unsafe.SliceData(s.data), len(s.data))
 }
 
-type String struct {
-	data []byte
-}
-
 func digest(key, value []byte) []byte {
 	mac := hmac.New(sha256.New, key)
 	mac.Write(value)
@@ -50,6 +46,11 @@ type Signer struct {
 	AccessKey string
 	SecretKey *Secret
 	TimeFunc  func() time.Time
+}
+
+func (s *Signer) Close() error {
+	s.SecretKey.Destroy()
+	return nil
 }
 
 func (s *Signer) Sign(payload []byte) Signature {
